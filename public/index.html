@@ -1,89 +1,644 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ลอยกระทงออนไลน์ - ริมท่าน้ำ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap">
+<style>
+:root{color-scheme:dark;--bg:#070b1f;--fg:#fff3d6;--acc:#ffb347;--card:#141a3a;--line:#3a3f6e}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:Sarabun,'Noto Sans Thai',system-ui,sans-serif;overflow:hidden;user-select:none}
+canvas{display:block;width:100%;height:100%}
+h1{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:0;right:0;text-align:center;margin:0;font-size:clamp(18px,3.8vw,26px);text-shadow:0 0 12px #ffb347;pointer-events:none}
+#st{position:fixed;top:calc(44px + env(safe-area-inset-top,0px));left:0;right:0;text-align:center;font-size:12px;opacity:.85;pointer-events:none}
+#hint{position:fixed;top:calc(66px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:rgba(20,26,58,.88);border:1px solid var(--acc);padding:4px 14px;border-radius:999px;font-size:13px;pointer-events:none;transition:.2s;white-space:nowrap}
+#bar{position:fixed;left:0;right:0;bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:0 10px;z-index:2}
+button{font:inherit;cursor:pointer;border:1px solid var(--acc);background:rgba(20,26,58,.9);color:var(--fg);padding:9px 14px;border-radius:999px;font-weight:600;transition:.15s}
+button.pri{background:linear-gradient(#ffb347,#ff8a2b);color:#2a1300;border:0}
+button:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(1)}
+button:hover:not(:disabled){filter:brightness(1.15)}
+#ov{position:fixed;inset:0;background:rgba(3,5,18,.78);display:none;align-items:center;justify-content:center;padding:12px;z-index:5}
+#md{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;width:min(440px,100%);max-height:92vh;overflow:auto}
+#md h2{margin:0 0 10px;font-size:20px}
+label{display:block;margin:10px 0 4px;font-size:14px;font-weight:600}
+input[type=text],textarea,select{width:100%;font:inherit;padding:9px;border-radius:10px;border:1px solid var(--line);background:#0b1030;color:var(--fg)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.types{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.types button{padding:4px;border-radius:12px;font-size:12px;font-weight:400}
+.types button.on{border-width:2px;background:#2b2f66}
+.types canvas{width:100%;height:auto}
+.row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.opt{display:flex;gap:8px;align-items:center;margin:6px 0;cursor:pointer;font-weight:400}
+.it{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px;border:1px solid var(--line);border-radius:12px;margin:6px 0}
+.it small{display:block;opacity:.8}
+.orig{padding:10px;border-radius:12px;background:#0b1030;border:1px dashed var(--acc)}
+#toast{position:fixed;top:25%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);border:1px solid var(--acc);padding:10px 18px;border-radius:12px;display:none;z-index:9}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<h1>🪷 ลอยกระทงออนไลน์ 🪷</h1>
+<div id="st"></div>
+<div id="hint">🚶 คลิกที่พื้นริมตลิ่ง หรือกดปุ่มลูกศร / WASD เพื่อเดินไปใกล้แม่น้ำ</div>
 
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/13.4.0/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/13.4.0/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/13.4.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/13.4.0/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/13.4.0/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/13.4.0/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/13.4.0/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/13.4.0/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/13.4.0/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/13.4.0/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+<div id="bar">
+  <button id="bChar">👘 แต่งตัวละคร</button>
+  <button class="pri" id="bNew" disabled>🪔 ลอยกระทง (เดินไปริมน้ำก่อน)</button>
+  <button id="bJoin">🤝 ขอลอยกับผู้อื่น</button>
+  <button id="bDel">🗑️ กระทงของฉัน</button>
+  <button id="bSnd" aria-label="เสียง">🔇 เสียง</button>
+</div>
 
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
-    </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
+<div id="ov"><div id="md"></div></div>
+<div id="toast"></div>
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+<script>
+/* ============================================================================
+   ตั้งค่าระบบออนไลน์ (Firebase Realtime Database)
+   หากต้องการเปิดออนไลน์ให้คนอื่นเห็นตัวละครและกระทงพร้อมกัน:
+   1. สร้าง Realtime Database ฟรีที่ https://console.firebase.google.com/
+   2. ตั้งค่า Rules เป็น {"rules":{".read":true,".write":true}}
+   3. นำ URL ฐานข้อมูลมาใส่ในตัวแปร FIREBASE_DB_URL ด้านล่าง
+   ============================================================================ */
+const FIREBASE_DB_URL = "https://loy-kratong-festival-b9e1d-default-rtdb.asia-southeast1.firebasedatabase.app/";
 
-        try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
-        }
+const F="Sarabun,'Noto Sans Thai',system-ui,sans-serif",$=s=>document.querySelector(s);
+const TYPES=[['banana','ใบตอง'],['lotus','ดอกบัว'],['coconut','กะลามะพร้าว'],['bread','ขนมปัง']];
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const hash=s=>{let h=0;for(const ch of s)h=(h*31+ch.charCodeAt(0))>>>0;return h};
+
+/* ---------- ข้อมูลตัวละครของผู้เล่น ---------- */
+const MY_ID = 'u_' + Math.random().toString(36).slice(2, 9);
+let myChar = JSON.parse(localStorage.getItem('my_thai_char') || 'null') || {
+  id: MY_ID,
+  name: 'ผู้มาเยือน',
+  gender: 'female',      // 'female' | 'male'
+  hairStyle: 'bun',      // 'bun' | 'ponytail' | 'braid'
+  hairLen: 'midback',    // 'chest' | 'underbust' | 'midback' | 'waist'
+  outfitColor: '#c2185b',
+  x: 0.5,
+  y: 0.88,
+  dir: 1
+};
+myChar.id = MY_ID;
+let targetPos = null;
+let otherPlayers = {};
+
+/* ---------- ระบบจัดเก็บข้อมูล (ไม่มีกระทงผีเริ่มต้น) ---------- */
+let mine = new Set();
+try { mine = new Set(JSON.parse(localStorage.getItem('krathong_mine') || '[]')); } catch(e) {}
+const saveMine = () => { try { localStorage.setItem('krathong_mine', JSON.stringify([...mine])); } catch(e) {} };
+
+let items = [], mode = 'local';
+function setItems(a) {
+  items = a.filter(k => k && k.id && k.name).sort((x, y) => x.created - y.created).slice(-35);
+  const onlineCount = Object.keys(otherPlayers).length + 1;
+  $('#st').textContent = (mode === 'online'
+    ? `🟢 ออนไลน์เรียลไทม์ · ผู้ร่วมงาน ${onlineCount} คน`
+    : `🟡 โหมดเล่นในเครื่อง (แสดงเฉพาะกระทงที่ลอยจริง)`) + ` · กระทงในน้ำ ${items.length} ใบ`;
+}
+
+// Local Storage (เริ่มต้นเป็นอาเรย์ว่าง ไม่มีข้อมูลจำลอง)
+const K_STORE = 'krathong_real_v1';
+const loadLocal = () => { try { return JSON.parse(localStorage.getItem(K_STORE)) || []; } catch(e) { return []; } };
+const saveLocal = a => { try { localStorage.setItem(K_STORE, JSON.stringify(a)); } catch(e) {} };
+let localData = loadLocal();
+setItems(localData);
+addEventListener('storage', () => { if (mode === 'local') { localData = loadLocal(); setItems(localData); } });
+
+// เชื่อมต่อ Firebase REST Polling (ถ้าใส่ FIREBASE_DB_URL)
+if (FIREBASE_DB_URL) {
+  mode = 'online';
+  const base = FIREBASE_DB_URL.replace(/\/$/, '');
+  const syncOnline = async () => {
+    try {
+      await fetch(`${base}/players/${MY_ID}.json`, {
+        method: 'PUT',
+        body: JSON.stringify({...myChar, updated: Date.now()})
       });
-    </script>
-  </body>
+      const [rk, rp] = await Promise.all([
+        fetch(`${base}/krathongs.json`).then(r => r.json()),
+        fetch(`${base}/players.json`).then(r => r.json())
+      ]);
+      const now = Date.now();
+      otherPlayers = {};
+      if (rp) {
+        Object.values(rp).forEach(p => {
+          if (p && p.id !== MY_ID && now - (p.updated || 0) < 15000) otherPlayers[p.id] = p;
+        });
+      }
+      setItems(rk ? Object.values(rk) : []);
+    } catch (e) {}
+  };
+  syncOnline();
+  setInterval(syncOnline, 1500);
+}
+
+const store = {
+  async add(k) {
+    if (mode === 'online') {
+      const base = FIREBASE_DB_URL.replace(/\/$/, '');
+      await fetch(`${base}/krathongs/${k.id}.json`, { method: 'PUT', body: JSON.stringify(k) });
+    } else {
+      localData = loadLocal();
+      localData.push(k);
+      saveLocal(localData);
+      setItems(localData);
+    }
+  },
+  async del(id) {
+    if (mode === 'online') {
+      const base = FIREBASE_DB_URL.replace(/\/$/, '');
+      await fetch(`${base}/krathongs/${id}.json`, { method: 'DELETE' });
+      items = items.filter(x => x.id !== id);
+    } else {
+      localData = loadLocal().filter(x => x.id !== id);
+      saveLocal(localData);
+      setItems(localData);
+    }
+  },
+  async join(id, n, w) {
+    if (mode === 'online') {
+      const base = FIREBASE_DB_URL.replace(/\/$/, '');
+      const cur = await fetch(`${base}/krathongs/${id}.json`).then(r => r.json());
+      if (!cur || !cur.open) return false;
+      await fetch(`${base}/krathongs/${id}.json`, {
+        method: 'PATCH',
+        body: JSON.stringify({ open: false, name2: n, wish2: w })
+      });
+      return true;
+    } else {
+      localData = loadLocal();
+      const k = localData.find(x => x.id === id);
+      if (!k || !k.open) return false;
+      Object.assign(k, { open: false, name2: n, wish2: w });
+      saveLocal(localData);
+      setItems(localData);
+      return true;
+    }
+  }
+};
+
+/* ---------- วาดตัวละครชุดไทย ---------- */
+function drawCharacter(c, p, x, y, t, isWalking) {
+  c.save();
+  c.translate(x, y);
+  const bob = isWalking ? Math.abs(Math.sin(t * 10)) * 3 : Math.sin(t * 2) * 1;
+  const legSwing = isWalking ? Math.sin(t * 10) * 5 : 0;
+
+  // เงาใต้เท้า
+  c.fillStyle = 'rgba(0,0,0,0.4)';
+  c.beginPath(); c.ellipse(0, 0, 14, 5, 0, 0, Math.PI * 2); c.fill();
+  c.translate(0, -bob);
+
+  const hairLenMap = { chest: -33, underbust: -28, midback: -23, waist: -17 };
+  const endY = hairLenMap[p.hairLen] || -23;
+
+  // ขา
+  c.strokeStyle = '#e0ac84'; c.lineWidth = 4; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(-4, -14); c.lineTo(-4 - legSwing * 0.5, -2); c.stroke();
+  c.beginPath(); c.moveTo(4, -14); c.lineTo(4 + legSwing * 0.5, -2); c.stroke();
+
+  if (p.gender === 'female') {
+    // ผ้าถุงหน้านาง + เชิงทอง
+    c.fillStyle = p.outfitColor || '#c2185b';
+    c.beginPath();
+    c.moveTo(-9, -20); c.lineTo(9, -20); c.lineTo(11, -3); c.lineTo(-11, -3);
+    c.closePath(); c.fill();
+    c.fillStyle = '#ffd54f';
+    c.fillRect(-10.5, -6, 21, 2.5);
+    c.fillRect(-2, -20, 4, 17); // จีบหน้านาง
+
+    // ลำตัว + สไบเฉียง + เข็มขัดทอง
+    c.fillStyle = '#f3c19d';
+    c.fillRect(-8, -38, 16, 18);
+    c.fillStyle = '#ffb300';
+    c.beginPath();
+    c.moveTo(-8, -39); c.lineTo(-1, -39); c.lineTo(9, -19); c.lineTo(2, -19);
+    c.closePath(); c.fill();
+    c.fillStyle = '#ffe082';
+    c.fillRect(-9, -21, 18, 2.5); // เข็มขัด
+
+    // แขน
+    c.strokeStyle = '#f3c19d'; c.lineWidth = 3.5;
+    c.beginPath(); c.moveTo(-9, -37); c.lineTo(-12, -22); c.stroke();
+    c.beginPath(); c.moveTo(9, -37); c.lineTo(12, -22); c.stroke();
+
+    // หัว & ใบหน้า
+    c.fillStyle = '#f3c19d';
+    c.beginPath(); c.arc(0, -48, 9.5, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#222';
+    const look = (p.dir || 1) * 2;
+    c.beginPath(); c.arc(-3 + look, -48, 1.2, 0, 7); c.arc(3 + look, -48, 1.2, 0, 7); c.fill();
+
+    // ผม
+    c.fillStyle = '#1c1614';
+    c.beginPath(); c.arc(0, -50, 10, Math.PI, 0); c.fill();
+    const side = -(p.dir || 1);
+    if (p.hairStyle === 'bun') {
+      c.beginPath(); c.arc(0, -61, 6, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = '#ffd54f'; c.lineWidth = 1.8;
+      c.beginPath(); c.moveTo(-7, -63); c.lineTo(7, -59); c.stroke();
+    } else if (p.hairStyle === 'ponytail') {
+      const sway = Math.sin(t * 3) * 1.5;
+      c.strokeStyle = '#1c1614'; c.lineWidth = 5;
+      c.beginPath(); c.moveTo(side * 7, -52);
+      c.quadraticCurveTo(side * 14, -44, side * 11 + sway, endY); c.stroke();
+      c.fillStyle = '#ffd54f';
+      c.beginPath(); c.arc(side * 8, -51, 2.2, 0, 7); c.fill();
+    } else {
+      const sway = Math.sin(t * 3) * 1, startY = -48;
+      const steps = Math.max(3, Math.floor((endY - startY) / 4.5));
+      for (let i = 0; i <= steps; i++) {
+        const py = startY + (endY - startY) * (i / steps);
+        const px = side * 9 + (i % 2 === 0 ? -1.5 : 1.5) + sway * (i / steps);
+        c.fillStyle = '#1c1614';
+        c.beginPath(); c.arc(px, py, 2.8, 0, Math.PI * 2); c.fill();
+      }
+      c.fillStyle = '#ff7043';
+      c.beginPath(); c.arc(side * 9 + sway, endY, 2.2, 0, 7); c.fill();
+    }
+  } else {
+    // ผู้ชาย: โจงกระเบน + เสื้อราชปะแตน + ผ้าคาดเอว
+    c.fillStyle = p.outfitColor || '#1565c0';
+    c.beginPath();
+    c.moveTo(-10, -21); c.lineTo(10, -21); c.lineTo(11, -8); c.lineTo(2, -8);
+    c.lineTo(0, -13); c.lineTo(-2, -8); c.lineTo(-11, -8);
+    c.closePath(); c.fill();
+
+    c.fillStyle = '#f5f5f5';
+    c.beginPath(); c.roundRect(-9, -39, 18, 19, 3); c.fill();
+    c.fillStyle = '#ffb300';
+    c.fillRect(-9, -22, 18, 3.5);
+
+    c.strokeStyle = '#f5f5f5'; c.lineWidth = 4;
+    c.beginPath(); c.moveTo(-9, -37); c.lineTo(-12, -22); c.stroke();
+    c.beginPath(); c.moveTo(9, -37); c.lineTo(12, -22); c.stroke();
+
+    c.fillStyle = '#e0ac84';
+    c.beginPath(); c.arc(0, -48, 9.5, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#1c1614';
+    c.beginPath(); c.arc(0, -50, 9.8, Math.PI * 0.95, Math.PI * 2.05); c.fill();
+    c.fillStyle = '#222';
+    const look = (p.dir || 1) * 2;
+    c.beginPath(); c.arc(-3 + look, -48, 1.2, 0, 7); c.arc(3 + look, -48, 1.2, 0, 7); c.fill();
+  }
+
+  // ป้ายชื่อบนหัว
+  c.font = '600 11px ' + F;
+  const nw = c.measureText(p.name).width + 10;
+  c.fillStyle = 'rgba(10, 15, 40, 0.78)';
+  c.beginPath(); c.roundRect(-nw / 2, -78, nw, 16, 6); c.fill();
+  c.fillStyle = '#ffd98a';
+  c.textAlign = 'center';
+  c.fillText(p.name, 0, -66);
+  c.restore();
+}
+
+/* ---------- วาดกระทง ---------- */
+function flame(c,x,y,t,r){const f=1+.15*Math.sin(t*9+x);const g=c.createRadialGradient(x,y,0,x,y,r*4*f);g.addColorStop(0,'rgba(255,200,80,.8)');g.addColorStop(1,'rgba(255,120,0,0)');c.fillStyle=g;c.fillRect(x-r*4,y-r*4,r*8,r*8);c.fillStyle='#ffd35a';c.beginPath();c.ellipse(x,y,r*.5,r*f,0,0,7);c.fill()}
+function candle(c,x,y,t){c.fillStyle='#f4e9d0';c.fillRect(x-2,y-14,4,14);flame(c,x,y-18,t,4)}
+function incense(c,x,y,t){c.strokeStyle='#8a5a2b';c.lineWidth=1.5;c.beginPath();c.moveTo(x,y);c.lineTo(x+6,y-24);c.stroke();c.fillStyle='#ff5a3c';c.beginPath();c.arc(x+6,y-24,1.6+.4*Math.sin(t*5),0,7);c.fill()}
+function drawK(c,type,t){
+ if(type==='banana'){c.fillStyle='#2e7d32';c.beginPath();c.ellipse(0,0,28,8,0,0,7);c.fill();for(let i=-2;i<=2;i++){c.fillStyle=i%2?'#43a047':'#66bb6a';c.beginPath();c.moveTo(i*8,0);c.quadraticCurveTo(i*8-6,-13,i*5,-20);c.quadraticCurveTo(i*8+8,-11,i*8,0);c.fill()}}
+ else if(type==='lotus'){c.fillStyle='#2e7d32';c.beginPath();c.ellipse(0,0,26,7,0,0,7);c.fill();for(let i=0;i<7;i++){c.save();c.translate(0,-2);c.rotate((i-3)*.34);c.fillStyle=i%2?'#f8bbd0':'#f06292';c.beginPath();c.ellipse(0,-12,5,13,0,0,7);c.fill();c.restore()}}
+ else if(type==='coconut'){c.fillStyle='#5d3d1e';c.beginPath();c.arc(0,-3,25,0,Math.PI);c.fill();c.fillStyle='#8d6e47';c.beginPath();c.ellipse(0,-3,25,5,0,0,7);c.fill();c.fillStyle='#ffb300';for(let i=-2;i<=2;i++){c.beginPath();c.arc(i*8,-5-Math.abs(i)%2*2,3,0,7);c.fill()}}
+ else{c.fillStyle='#c98f3e';c.beginPath();c.roundRect(-26,-6,52,13,6);c.fill();c.fillStyle='#e8bf74';c.beginPath();c.roundRect(-24,-11,48,11,5);c.fill();c.fillStyle='#43a047';for(let i=-2;i<=2;i++){c.beginPath();c.ellipse(i*9,-12,4,6,i*.3,0,7);c.fill()}c.fillStyle='#ff7043';c.beginPath();c.arc(0,-13,4,0,7);c.fill()}
+ candle(c,-5,-8,t);incense(c,8,-6,t)}
+
+/* ---------- ป้ายชื่อ & คำอวยพรบนกระทง ---------- */
+const seg=window.Intl&&Intl.Segmenter?new Intl.Segmenter('th',{granularity:'word'}):null,LC={};
+function wrap(c,txt,mx){const tk=seg?[...seg.segment(txt)].map(s=>s.segment):[...txt],out=[];let cur='';for(const w of tk){if(cur&&c.measureText(cur+w).width>mx){out.push(cur.trim());cur=''}cur+=w;while(cur.length>1&&c.measureText(cur).width>mx){let i=cur.length-1;while(i>1&&c.measureText(cur.slice(0,i)).width>mx)i--;out.push(cur.slice(0,i));cur=cur.slice(i)}}if(cur.trim())out.push(cur.trim());return out}
+function lines(c,k){const key=k.name+'|'+k.wish+'|'+k.name2+'|'+k.wish2;if(LC[key])return LC[key];
+ c.font='600 12px '+F;const L={n:wrap(c,k.name2?k.name+' & '+k.name2:k.name,120).slice(0,2),w:[],mw:30};L.mw=Math.max(...L.n.map(s=>c.measureText(s).width));
+ c.font='11px '+F;[k.wish,k.wish2].forEach(w=>{if(w)L.w.push(...wrap(c,w,120))});if(L.w.length>4){L.w=L.w.slice(0,4);L.w[3]=L.w[3].slice(0,-1)+'…'}
+ L.w.forEach(s=>L.mw=Math.max(L.mw,c.measureText(s).width));return LC[key]=L}
+
+/* ---------- ฉากและแอนิเมชัน ---------- */
+const cv=$('#cv'),c=cv.getContext('2d');
+let W,H,D,stars=[],lan=[],fw=[],hits=[],nextFw=2;
+const keys = {};
+
+function resize(){
+  D=devicePixelRatio||1;W=innerWidth;H=innerHeight;
+  cv.width=W*D;cv.height=H*D;
+  stars=Array.from({length:65},()=>({x:Math.random()*W,y:Math.random()*H*.26,r:Math.random()*1.3+.3,p:Math.random()*6}));
+  lan=Array.from({length:7},()=>({x:Math.random()*W,y:Math.random()*H*.3,s:8+Math.random()*10,p:Math.random()*6}));
+}
+addEventListener('resize',resize);resize();
+
+addEventListener('keydown', e => {
+  if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
+  keys[e.key.toLowerCase()] = true;
+  targetPos = null;
+});
+addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+function burst(x,y){const col='hsl('+(Math.random()*360|0)+',100%,65%)';for(let i=0;i<42;i++){const a=Math.PI*2*i/42,v=1.5+Math.random()*2;fw.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:1,col})}}
+
+// วาดทิวทัศน์ฝั่งตรงข้าม (วัด, ไฟราวงานวัด, เสาโคมไฟริมน้ำไกล) จากไฟล์หลัก
+function farBank(c, rt, W, t) {
+  c.fillStyle='#0a0f26';c.beginPath();c.moveTo(0,rt);for(let x=0;x<=W;x+=30)c.lineTo(x,rt-30-14*Math.sin(x*.008+1)-8*Math.sin(x*.03));c.lineTo(W,rt);c.fill();
+  const tx=W*.2;c.fillStyle='#050816';c.beginPath();c.moveTo(tx-28,rt-12);c.lineTo(tx-22,rt-26);c.lineTo(tx-5,rt-36);c.lineTo(tx,rt-76);c.lineTo(tx+5,rt-36);c.lineTo(tx+22,rt-26);c.lineTo(tx+28,rt-12);c.fill();
+  c.fillRect(tx+38,rt-24,46,15);c.beginPath();c.moveTo(tx+32,rt-24);c.lineTo(tx+61,rt-40);c.lineTo(tx+90,rt-24);c.fill();
+  c.fillStyle='rgba(255,190,90,.8)';[tx+47,tx+59,tx+71].forEach(x=>c.fillRect(x,rt-20,5,7));
+  for(let i=0;i<9;i++){const x=W*(i+.5)/9+Math.sin(i*7)*20;if(Math.abs(x-tx)<55)continue;c.fillStyle='#050816';c.beginPath();c.arc(x,rt-20,14+(i%3)*4,0,7);c.arc(x+10,rt-12,11,0,7);c.fill();c.fillRect(x-2,rt-18,4,12)}
+  c.fillStyle='#1b1f3a';c.fillRect(0,rt-6,W,9);
+  const n=Math.max(3,W/160|0);
+  for(let i=0;i<n;i++){const x=W*(i+.5)/n,f=.8+.2*Math.sin(t*5+i);c.fillStyle='#0b0e22';c.fillRect(x-1.5,rt-30,3,24);const g=c.createRadialGradient(x,rt-32,0,x,rt-32,24);g.addColorStop(0,'rgba(255,190,90,'+.7*f+')');g.addColorStop(1,'rgba(255,150,40,0)');c.fillStyle=g;c.fillRect(x-24,rt-56,48,48);c.fillStyle='#ffd27a';c.beginPath();c.arc(x,rt-32,3.5,0,7);c.fill()}
+  for(let i=0;i<n-1;i++){const x0=W*(i+.5)/n,x1=W*(i+1.5)/n;for(let k=1;k<8;k++){const u=k/8;c.fillStyle='hsl('+((k*47+i*60)%360)+',90%,65%)';c.globalAlpha=.6+.4*Math.sin(t*3+k+i);c.beginPath();c.arc(x0+(x1-x0)*u,rt-31+Math.sin(u*Math.PI)*10,2,0,7);c.fill()}}c.globalAlpha=1;
+}
+
+function updateMovement() {
+  const bankTop = 0.72;        // ขอบเขื่อนติดแม่น้ำ
+  const bankBottom = 0.94;     // ขอบล่างจอ
+  const nearWaterLimit = 0.78; // โซนใกล้แม่น้ำที่อนุญาตให้ลอยกระทง
+  let moving = false;
+  const speedX = 0.0045, speedY = 0.004;
+
+  if (keys['arrowleft'] || keys['a']) { myChar.x -= speedX; myChar.dir = -1; moving = true; }
+  if (keys['arrowright'] || keys['d']) { myChar.x += speedX; myChar.dir = 1; moving = true; }
+  if (keys['arrowup'] || keys['w']) { myChar.y -= speedY; moving = true; }
+  if (keys['arrowdown'] || keys['s']) { myChar.y += speedY; moving = true; }
+
+  if (targetPos && !moving) {
+    const dx = targetPos.x - myChar.x, dy = targetPos.y - myChar.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 0.006) {
+      myChar.x += (dx / dist) * speedX;
+      myChar.y += (dy / dist) * speedY;
+      if (Math.abs(dx) > 0.002) myChar.dir = dx > 0 ? 1 : -1;
+      moving = true;
+    } else {
+      targetPos = null;
+    }
+  }
+
+  myChar.x = Math.max(0.05, Math.min(0.95, myChar.x));
+  myChar.y = Math.max(bankTop, Math.min(bankBottom, myChar.y));
+
+  const isNearWater = myChar.y <= nearWaterLimit;
+  const btn = $('#bNew'), hint = $('#hint');
+  if (isNearWater) {
+    btn.disabled = false;
+    btn.textContent = '🪔 ลอยกระทงตรงนี้';
+    hint.textContent = '✨ ถึงริมท่าน้ำแล้ว กด "ลอยกระทงตรงนี้" ได้เลย!';
+    hint.style.borderColor = '#4caf50';
+  } else {
+    btn.disabled = true;
+    btn.textContent = '🪔 ลอยกระทง (เดินไปริมน้ำก่อน)';
+    hint.textContent = '🚶 เดินขึ้นไปใกล้ๆ ขอบแม่น้ำเพื่อลอยกระทง';
+    hint.style.borderColor = '#ffb347';
+  }
+  return moving;
+}
+
+function frame(){
+  const t = performance.now()/1000, now = Date.now();
+  const isWalking = updateMovement();
+  c.setTransform(D,0,0,D,0,0);
+  hits = [];
+
+  const skyH = H * 0.28;   // ท้องฟ้า 0 - 28%
+  const riverH = H * 0.70; // แม่น้ำ 28% - 70%
+  // ริมตลิ่ง 70% - 100%
+
+  // 1. ท้องฟ้า & ดวงจันทร์
+  const g=c.createLinearGradient(0,0,0,skyH);g.addColorStop(0,'#050818');g.addColorStop(1,'#1a2150');
+  c.fillStyle=g;c.fillRect(0,0,W,skyH+2);
+  stars.forEach(s=>{c.fillStyle='rgba(255,255,255,'+(.4+.4*Math.sin(t*2+s.p))+')';c.beginPath();c.arc(s.x,s.y,s.r,0,7);c.fill()});
+
+  const mx=W*.8,my=H*.12,mg=c.createRadialGradient(mx,my,0,mx,my,75);mg.addColorStop(0,'rgba(255,245,200,.6)');mg.addColorStop(1,'rgba(255,245,200,0)');
+  c.fillStyle=mg;c.fillRect(mx-75,my-75,150,150);c.fillStyle='#fff6d0';c.beginPath();c.arc(mx,my,22,0,7);c.fill();
+
+  // 2. แม่น้ำ & เงาสะท้อนพระจันทร์
+  const wg=c.createLinearGradient(0,skyH,0,riverH);wg.addColorStop(0,'#0e1a45');wg.addColorStop(1,'#091336');
+  c.fillStyle=wg;c.fillRect(0,skyH,W,riverH-skyH);
+  for(let i=0;i<10;i++){const y=skyH+8+(riverH-skyH)*i/10;c.strokeStyle='rgba(150,180,255,'+(.05+.04*(i%3))+')';c.lineWidth=1;c.beginPath();for(let x=0;x<=W;x+=14){const yy=y+Math.sin(x*.02+t*(.8+i*.1)+i)*(2+i*.2);x?c.lineTo(x,yy):c.moveTo(x,yy)}c.stroke()}
+  for(let j=0;j<10;j++){const y=skyH+6+j*12,w=36-j*1.5+Math.sin(t*2+j)*8;c.fillStyle='rgba(255,246,208,'+(.2-j*.014)+')';c.fillRect(mx-w/2+Math.sin(t+j)*5,y,w,2.5)}
+
+  // ทิวทัศน์วัดและไฟราวฝั่งตรงข้าม + โคมลอย
+  farBank(c, skyH, W, t);
+  lan.forEach(l=>{l.y-=l.s*.015;l.x+=Math.sin(t+l.p)*.2;if(l.y<-20){l.y=skyH;l.x=Math.random()*W}
+    const f=.7+.3*Math.sin(t*6+l.p);c.fillStyle='rgba(255,190,90,'+f+')';c.beginPath();c.roundRect(l.x-5,l.y-7,10,14,3);c.fill()});
+
+  // 3. กระทงในแม่น้ำ (ความเร็วลอยนุ่มนวล + เงาสะท้อนน้ำ + จุดเริ่มต้นจากตำแหน่งผู้ปล่อย)
+  const laneN=4, top=skyH+38, lh=(riverH-top-46)/laneN, loop=W+260;
+  items.map(k=>({k,h:hash(k.id)})).sort((a,b)=>(a.h%laneN)-(b.h%laneN)).forEach(({k,h})=>{
+    const lane = h % laneN;
+    const sp = 5 + lane * 0.9; // ลอยช้าๆ สวยงาม
+    const startX = (typeof k.startX === 'number') ? k.startX * W : (h % loop);
+    const x = ((startX + (now - k.created) / 1000 * sp) % loop + loop) % loop - 130;
+    const y = top + lane * lh + lh * 0.25 + Math.sin(t * 1.4 + h) * 2;
+
+    // เงาสะท้อนแสงเทียนและกระทงบนผิวน้ำ
+    c.save();c.translate(x,y);c.rotate(Math.sin(t+h)*.03);
+    const rg=c.createRadialGradient(0,2,0,0,2,45);rg.addColorStop(0,'rgba(255,180,70,.32)');rg.addColorStop(1,'rgba(255,150,40,0)');
+    c.fillStyle=rg;c.fillRect(-45,-43,90,90);c.scale(1,-.22);c.globalAlpha=.22;drawK(c,k.type,t);c.restore();
+
+    // ตัวกระทง
+    c.save();c.translate(x,y);c.rotate(Math.sin(t+h)*.03);drawK(c,k.type,t);c.restore();
+
+    if(k.open){c.fillStyle='#ffb347';c.beginPath();c.arc(x+26,y-26,8+Math.sin(t*4)*1,0,7);c.fill();c.fillStyle='#2a1300';c.font='700 13px '+F;c.textAlign='center';c.fillText('+',x+26,y-22)}
+    const L=lines(c,k),n=L.n.length+L.w.length,bh=n*13+7,bw=L.mw+12,bx=x-bw/2,by=y+12;
+    c.fillStyle='rgba(6,12,36,.8)';c.strokeStyle=k.open?'#ffb347':'rgba(255,255,255,.25)';c.lineWidth=1;c.beginPath();c.roundRect(bx,by,bw,bh,7);c.fill();c.stroke();
+    c.textAlign='center';let ty=by+14;c.font='600 12px '+F;c.fillStyle='#ffd98a';L.n.forEach(s=>{c.fillText(s,x,ty);ty+=13});c.font='11px '+F;c.fillStyle='#fff';L.w.forEach(s=>{c.fillText(s,x,ty);ty+=13});
+    hits.push({id:k.id,x0:Math.min(x-28,bx),y0:y-32,x1:Math.max(x+30,bx+bw),y1:by+bh});
+  });
+
+  // 4. ริมตลิ่ง / ท่าน้ำ (โซนเดินเล่น)
+  const bg = c.createLinearGradient(0, riverH, 0, H);
+  bg.addColorStop(0, '#2a2233'); bg.addColorStop(0.15, '#1d2b24'); bg.addColorStop(1, '#0f1713');
+  c.fillStyle = bg; c.fillRect(0, riverH, W, H - riverH);
+
+  // ขอบเขื่อนหินริมน้ำ & โซนระยะลอยกระทง
+  c.fillStyle = '#4a4352'; c.fillRect(0, riverH - 4, W, 10);
+  c.fillStyle = 'rgba(255, 179, 71, 0.08)';
+  c.fillRect(0, riverH + 6, W, H * 0.08);
+  c.strokeStyle = 'rgba(255, 179, 71, 0.28)'; c.setLineDash([6, 6]);
+  c.beginPath(); c.moveTo(0, H * 0.78); c.lineTo(W, H * 0.78); c.stroke();
+  c.setLineDash([]);
+
+  // เสาโคมไฟริมท่าน้ำ
+  [0.12, 0.5, 0.88].forEach(rx => {
+    const px = W * rx, py = riverH + 8;
+    c.fillStyle = '#3e2723'; c.fillRect(px - 2, py - 28, 4, 28);
+    const lg = c.createRadialGradient(px, py - 31, 0, px, py - 31, 24);
+    lg.addColorStop(0, 'rgba(255, 190, 90, 0.5)'); lg.addColorStop(1, 'rgba(255, 190, 90, 0)');
+    c.fillStyle = lg; c.fillRect(px - 24, py - 55, 48, 48);
+    c.fillStyle = '#ffb347'; c.beginPath(); c.arc(px, py - 31, 5, 0, 7); c.fill();
+  });
+
+  // 5. วาดตัวละครทั้งหมด (เรียงตามความลึกแกน Y)
+  const allChars = [
+    ...Object.values(otherPlayers).map(p => ({...p, walking: false})),
+    {...myChar, walking: isWalking}
+  ].sort((a, b) => a.y - b.y);
+
+  allChars.forEach(p => {
+    drawCharacter(c, p, p.x * W, p.y * H, t, p.walking);
+  });
+
+  // 6. พลุ
+  if((nextFw-=.016)<0){burst(W*(.15+Math.random()*.7),H*(.06+Math.random()*.18));nextFw=4+Math.random()*4}
+  c.globalCompositeOperation='lighter';fw=fw.filter(p=>p.l>0);fw.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.03;p.vx*=.985;p.l-=.011;c.fillStyle=p.col;c.globalAlpha=Math.max(p.l,0);c.beginPath();c.arc(p.x,p.y,2,0,7);c.fill()});c.globalAlpha=1;c.globalCompositeOperation='source-over';
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- UI & Modals ---------- */
+const ov=$('#ov'),md=$('#md');
+function toast(m){const e=$('#toast');e.textContent=m;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',2400)}
+function show(h){md.innerHTML=h;ov.style.display='flex'}function close(){ov.style.display='none'}
+ov.addEventListener('mousedown',e=>{if(e.target===ov)close()});
+
+// หน้าต่างแต่งตัวละครชุดไทย
+function charModal() {
+  show(`
+    <h2>👘 แต่งตัวละครชุดไทย</h2>
+    <div style="text-align:center;background:#0b1030;border-radius:12px;padding:10px;margin-bottom:8px">
+      <canvas id="prevChar" width="140" height="110"></canvas>
+    </div>
+    <label>ชื่อตัวละคร</label>
+    <input type="text" id="cn" maxlength="15" value="${esc(myChar.name)}">
+    <div class="grid2">
+      <div>
+        <label>เพศ / ชุดไทย</label>
+        <select id="cg">
+          <option value="female" ${myChar.gender==='female'?'selected':''}>ผู้หญิง (สไบ + ผ้าถุง)</option>
+          <option value="male" ${myChar.gender==='male'?'selected':''}>ผู้ชาย (ราชปะแตน + โจงกระเบน)</option>
+        </select>
+      </div>
+      <div>
+        <label>สีผ้าถุง / โจงกระเบน</label>
+        <select id="ccol">
+          <option value="#c2185b" ${myChar.outfitColor==='#c2185b'?'selected':''}>ชมพูบานเย็น</option>
+          <option value="#1565c0" ${myChar.outfitColor==='#1565c0'?'selected':''}>น้ำเงินกรมท่า</option>
+          <option value="#2e7d32" ${myChar.outfitColor==='#2e7d32'?'selected':''}>เขียวมรกต</option>
+          <option value="#6a1b9a" ${myChar.outfitColor==='#6a1b9a'?'selected':''}>ม่วงเม็ดมะปราง</option>
+          <option value="#b71c1c" ${myChar.outfitColor==='#b71c1c'?'selected':''}>แดงชาด</option>
+        </select>
+      </div>
+    </div>
+    <div id="femOpts" style="display:${myChar.gender==='female'?'block':'none'}">
+      <div class="grid2">
+        <div>
+          <label>ทรงผมผู้หญิง</label>
+          <select id="chs">
+            <option value="bun" ${myChar.hairStyle==='bun'?'selected':''}>มวยผมปิ่นทอง</option>
+            <option value="ponytail" ${myChar.hairStyle==='ponytail'?'selected':''}>หางม้า</option>
+            <option value="braid" ${myChar.hairStyle==='braid'?'selected':''}>ถักเปีย</option>
+          </select>
+        </div>
+        <div id="lenWrap" style="display:${myChar.hairStyle==='bun'?'none':'block'}">
+          <label>ความยาวผม</label>
+          <select id="chl">
+            <option value="chest" ${myChar.hairLen==='chest'?'selected':''}>ระดับหน้าอก</option>
+            <option value="underbust" ${myChar.hairLen==='underbust'?'selected':''}>ระดับใต้อก</option>
+            <option value="midback" ${myChar.hairLen==='midback'?'selected':''}>ระดับกลางหลัง</option>
+            <option value="waist" ${myChar.hairLen==='waist'?'selected':''}>ระดับเอว</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <button id="x">ยกเลิก</button>
+      <button class="pri" id="ok">บันทึกตัวละคร</button>
+    </div>
+  `);
+
+  const pCv = $('#prevChar').getContext('2d');
+  const renderPrev = () => {
+    pCv.clearRect(0,0,140,110);
+    const temp = {
+      name: $('#cn').value.trim() || 'ชื่อ',
+      gender: $('#cg').value,
+      hairStyle: $('#chs').value,
+      hairLen: $('#chl').value,
+      outfitColor: $('#ccol').value,
+      dir: 1
+    };
+    $('#femOpts').style.display = temp.gender === 'female' ? 'block' : 'none';
+    $('#lenWrap').style.display = temp.hairStyle === 'bun' ? 'none' : 'block';
+    drawCharacter(pCv, temp, 70, 95, 0, false);
+  };
+  ['#cn','#cg','#chs','#chl','#ccol'].forEach(id => $(id).oninput = renderPrev);
+  renderPrev();
+
+  $('#x').onclick = close;
+  $('#ok').onclick = () => {
+    const n = $('#cn').value.trim();
+    if (!n) return toast('กรอกชื่อตัวละครก่อนนะ');
+    myChar.name = n;
+    myChar.gender = $('#cg').value;
+    myChar.hairStyle = $('#chs').value;
+    myChar.hairLen = $('#chl').value;
+    myChar.outfitColor = $('#ccol').value;
+    localStorage.setItem('my_thai_char', JSON.stringify(myChar));
+    close();
+    toast('อัปเดตชุดไทยเรียบร้อย ✨');
+  };
+}
+
+// หน้าต่างสร้างกระทง
+function newModal(){
+  if (myChar.y > 0.78) return toast('ต้องเดินไปใกล้ๆ ขอบแม่น้ำก่อนถึงจะลอยกระทงได้นะ');
+  let ty='banana';
+  show('<h2>🪔 สร้างกระทงใหม่</h2><div class="types">'+TYPES.map(([k,n])=>'<button data-t="'+k+'"'+(k===ty?' class="on"':'')+'><canvas width="120" height="90" data-k="'+k+'"></canvas>'+n+'</button>').join('')+'</div><label>ชื่อบนกระทง (ไม่เกิน 15 ตัวอักษร)</label><input type="text" id="fn" maxlength="15" value="'+esc(myChar.name)+'"><label>คำอวยพร / คำอธิษฐาน <span id="cc">0/60</span></label><textarea id="fw" rows="3" maxlength="60"></textarea><label class="opt"><input type="radio" name="m" value="1" checked> เปิดให้คนอื่นมาขอลอยด้วย</label><label class="opt"><input type="radio" name="m" value="0"> ลอยเดี่ยวเท่านั้น</label><div class="row"><button id="x">ยกเลิก</button><button class="pri" id="ok">ปล่อยกระทงลงน้ำ</button></div>');
+  md.querySelectorAll('canvas').forEach(e=>{const x=e.getContext('2d');x.translate(60,62);x.scale(1.5,1.5);drawK(x,e.dataset.k,0)});
+  md.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ty=b.dataset.t;md.querySelectorAll('[data-t]').forEach(z=>z.classList.toggle('on',z===b))});
+  $('#fw').oninput=e=>$('#cc').textContent=e.target.value.length+'/60';$('#x').onclick=close;
+  $('#ok').onclick=async()=>{const n=$('#fn').value.trim(),w=$('#fw').value.trim();if(!n||!w)return toast('กรอกชื่อและคำอวยพรก่อนนะ');
+    const k={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),type:ty,name:n,wish:w,open:md.querySelector('[name=m]:checked').value==='1',created:Date.now(),startX:myChar.x,name2:'',wish2:''};
+    await store.add(k);mine.add(k.id);saveMine();close();burst(myChar.x*W,H*.22);toast('ปล่อยกระทงลงแม่น้ำแล้ว 🪷')};
+}
+
+function joinForm(id){
+  const k=items.find(x=>x.id===id);if(!k||!k.open)return toast('กระทงใบนี้ไม่เปิดรับแล้ว');
+  show('<h2>🤝 ขอลอยด้วยกัน</h2><div class="orig"><b>'+esc(k.name)+'</b><br>'+esc(k.wish)+'</div><label>ชื่อของคุณ (ไม่เกิน 15 ตัวอักษร)</label><input type="text" id="jn" maxlength="15" value="'+esc(myChar.name)+'"><label>คำอวยพรเพิ่มเติม <span id="cc">0/60</span></label><textarea id="jw" rows="3" maxlength="60"></textarea><div class="row"><button id="x">ยกเลิก</button><button class="pri" id="ok">ยืนยัน</button></div>');
+  $('#jw').oninput=e=>$('#cc').textContent=e.target.value.length+'/60';$('#x').onclick=close;
+  $('#ok').onclick=async()=>{const n=$('#jn').value.trim(),w=$('#jw').value.trim();if(!n||!w)return toast('กรอกชื่อและคำอวยพรก่อนนะ');if(await store.join(id,n,w)){close();burst(W/2,H*.2);toast('ลอยคู่สำเร็จ ✨')}else{close();toast('มีคนตัดหน้าไปแล้ว')}};
+}
+
+function joinList(){
+  const o=items.filter(k=>k.open);
+  show('<h2>🤝 กระทงที่เปิดรับคนลอยด้วย</h2>'+(o.length?o.map(k=>'<div class="it"><div><b>'+esc(k.name)+'</b><small>'+esc(k.wish)+'</small></div><button data-j="'+k.id+'">ลอยด้วย</button></div>').join(''):'<p>ตอนนี้ยังไม่มีกระทงที่เปิดรับ ลองเดินไปริมน้ำแล้วสร้างใบใหม่ก่อนนะ</p>')+'<div class="row"><button id="x">ปิด</button></div>');
+  $('#x').onclick=close;md.querySelectorAll('[data-j]').forEach(b=>b.onclick=()=>joinForm(b.dataset.j));
+}
+
+// จัดการและลบกระทงของฉัน (นำกลับมาจากไฟล์หลัก)
+async function delK(id){await store.del(id);mine.delete(id);saveMine();close();toast('ลบกระทงแล้ว')}
+function mineModal(id){const k=items.find(x=>x.id===id);if(!k)return;show('<h2>🪷 กระทงของคุณ</h2><div class="orig"><b>'+esc(k.name+(k.name2?' & '+k.name2:''))+'</b><br>'+esc(k.wish)+(k.wish2?'<br>'+esc(k.wish2):'')+'</div><div class="row"><button id="x">ปิด</button><button class="pri" id="dl">🗑️ ลบกระทงนี้</button></div>');$('#x').onclick=close;$('#dl').onclick=()=>delK(id)}
+function mineList(){const o=items.filter(k=>mine.has(k.id));show('<h2>🗑️ กระทงของฉัน</h2>'+(o.length?o.map(k=>'<div class="it"><div><b>'+esc(k.name)+'</b><small>'+esc(k.wish)+'</small></div><button data-d="'+k.id+'">ลบ</button></div>').join(''):'<p>ยังไม่มีกระทงที่คุณลอยจากเครื่องนี้</p>')+'<div class="row"><button id="x">ปิด</button></div>');$('#x').onclick=close;md.querySelectorAll('[data-d]').forEach(b=>b.onclick=async()=>{await store.del(b.dataset.d);mine.delete(b.dataset.d);saveMine();mineList()})}
+
+$('#bChar').onclick = charModal;
+$('#bNew').onclick = newModal;
+$('#bJoin').onclick = joinList;
+$('#bDel').onclick = mineList;
+
+// คลิกบน Canvas: คลิกกระทง -> จัดการ/ขอลอยด้วย | คลิกพื้นตลิ่ง -> เดินไปตรงนั้น
+cv.addEventListener('click', e => {
+  const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  for (let i = hits.length - 1; i >= 0; i--) {
+    const h = hits[i];
+    if (x >= h.x0 && x <= h.x1 && y >= h.y0 && y <= h.y1) {
+      const k = items.find(z => z.id === h.id);
+      if (!k) return;
+      return mine.has(k.id) ? mineModal(k.id) : (k.open ? joinForm(k.id) : toast('กระทงใบนี้ลอยเดี่ยวหรือลอยคู่แล้ว'));
+    }
+  }
+  if (y / H >= 0.70) {
+    targetPos = { x: x / W, y: Math.max(0.72, Math.min(0.94, y / H)) };
+  }
+});
+
+/* ---------- เสียงบรรยากาศ ---------- */
+let ac,gain,pl,on=false;
+function snd(){on=!on;$('#bSnd').textContent=on?'🔊 เสียง':'🔇 เสียง';try{if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();const b=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const s=ac.createBufferSource();s.buffer=b;s.loop=true;const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=420;gain=ac.createGain();gain.gain.value=0;s.connect(f).connect(gain).connect(ac.destination);s.start()}
+ ac.resume();gain.gain.value=on?.07:0;clearInterval(pl);if(on)pl=setInterval(()=>{const n=[392,440,523,587,659][Math.random()*5|0],o=ac.createOscillator(),g=ac.createGain();o.type='triangle';o.frequency.value=n;g.gain.setValueAtTime(.0001,ac.currentTime);g.gain.exponentialRampToValueAtTime(.05,ac.currentTime+.02);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+1.6);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+1.7)},2200)}catch(e){}}
+$('#bSnd').onclick=snd;
+</script>
+</body>
 </html>
