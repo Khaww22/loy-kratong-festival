@@ -136,18 +136,32 @@ if (FIREBASE_DB_URL) {
           if (p && p.id !== MY_ID && now - (p.updated || 0) < 15000) otherPlayers[p.id] = p;
         });
       }
-      setItems(rk ? Object.values(rk) : []);
+      setItems(mergePending(rk ? Object.values(rk) : []));
     } catch (e) {}
   };
   syncOnline();
   setInterval(syncOnline, 1500);
 }
 
+const pending = {};
+function mergePending(a) {
+  const ids = new Set(a.map(x => x && x.id)), now = Date.now();
+  for (const id in pending) {
+    const p = pending[id];
+    if (ids.has(id) || (!p.failed && now - p.t > 30000)) delete pending[id]; else a.push(p.k);
+  }
+  return a;
+}
 const store = {
   async add(k) {
     if (mode === 'online') {
       const base = FIREBASE_DB_URL.replace(/\/$/, '');
-      await fetch(`${base}/krathongs/${k.id}.json`, { method: 'PUT', body: JSON.stringify(k) });
+      pending[k.id] = { k, t: Date.now(), failed: false };
+      setItems(mergePending([...items]));
+      try {
+        const r = await fetch(`${base}/krathongs/${k.id}.json`, { method: 'PUT', body: JSON.stringify(k) });
+        if (!r.ok) throw new Error(r.status);
+      } catch (e) { pending[k.id].failed = true; toast('บันทึกขึ้นฐานข้อมูลออนไลน์ไม่สำเร็จ (เช็ก Rules ของ Firebase) กระทงจะเห็นเฉพาะในเครื่องนี้'); }
     } else {
       localData = loadLocal();
       localData.push(k);
@@ -158,6 +172,7 @@ const store = {
   async del(id) {
     if (mode === 'online') {
       const base = FIREBASE_DB_URL.replace(/\/$/, '');
+      delete pending[id];
       await fetch(`${base}/krathongs/${id}.json`, { method: 'DELETE' });
       items = items.filter(x => x.id !== id);
     } else {
@@ -190,6 +205,26 @@ const store = {
 
 /* ---------- วาดตัวละครชุดไทย ---------- */
 const mixc=(h,t,a)=>{const p=q=>[1,3,5].map(i=>parseInt(q.slice(i,i+2),16)),A=p(h),B=p(t);return 'rgb('+A.map((v,i)=>Math.round(v+(B[i]-v)*a)).join(',')+')'};
+const HAIRS=[['bun','มวยผมปิ่นทอง'],['lowbun','มวยต่ำทัดมาลัยมะลิ'],['loose','ผมยาวสยายทัดดอกไม้'],['twinbraid','เปียคู่ผูกโบว์'],['bob','ผมบ็อบประดับดอกไม้'],['chada','ชฎาทองพร้อมผมเกล้า'],['ponytail','หางม้า'],['braid','ถักเปียข้าง']];
+function flower(c,x,y,col,r){c.fillStyle=col;for(let i=0;i<5;i++){const a=i/5*6.28;c.beginPath();c.arc(x+Math.cos(a)*r,y+Math.sin(a)*r,r*.75,0,7);c.fill()}c.fillStyle='#ffd54f';c.beginPath();c.arc(x,y,r*.6,0,7);c.fill()}
+function jasmine(c,x,y,r){c.fillStyle='#fffdf5';for(let i=0;i<8;i++){const a=i/8*6.28;c.beginPath();c.arc(x+Math.cos(a)*r,y+Math.sin(a)*r,1.5,0,7);c.fill()}}
+function hairBack(c,st,t,side){const w=Math.sin(t*2)*1.2;c.fillStyle='#1c1614';
+ if(st==='loose'){c.beginPath();c.moveTo(-10,-52);c.quadraticCurveTo(-16,-38,-13+w,-19);c.quadraticCurveTo(0,-14,13+w,-19);c.quadraticCurveTo(16,-38,10,-52);c.closePath();c.fill();c.strokeStyle='rgba(255,255,255,.1)';c.lineWidth=1;[-6,0,6].forEach(o=>{c.beginPath();c.moveTo(o,-46);c.quadraticCurveTo(o*1.6,-34,o*1.4+w,-20);c.stroke()})}
+ else if(st==='bob'){c.beginPath();c.roundRect(-11.5,-59,23,20,9);c.fill()}
+ else if(st==='lowbun'){c.beginPath();c.ellipse(side*8,-42,7,6,0,0,7);c.fill()}
+ else if(st==='ponytail'){c.strokeStyle='#1c1614';c.lineWidth=5.5;c.lineCap='round';c.beginPath();c.moveTo(side*7,-52);c.quadraticCurveTo(side*15,-44,side*12+w,-24);c.stroke()}
+}
+function hairFront(c,st,t,side){const w=Math.sin(t*3);c.fillStyle='#1c1614';
+ c.beginPath();c.moveTo(-9.5,-50);c.quadraticCurveTo(-4,-56,-side*2,-52);c.lineTo(0,-50);c.fill();
+ if(st==='bun'){c.beginPath();c.arc(0,-61,6.5,0,7);c.fill();jasmine(c,0,-61,7.4);c.strokeStyle='#ffd54f';c.lineWidth=1.8;c.beginPath();c.moveTo(-8,-64);c.lineTo(8,-58);c.stroke();c.fillStyle='#ffd54f';c.beginPath();c.arc(8,-58,1.8,0,7);c.fill()}
+ else if(st==='lowbun'){jasmine(c,side*8,-42,7.6);c.strokeStyle='#ffd54f';c.lineWidth=1.6;c.beginPath();c.moveTo(side*4,-47);c.lineTo(side*12,-38);c.stroke();flower(c,-side*7,-53,'#ff80ab',1.8)}
+ else if(st==='loose'){[-1,1].forEach(s=>{c.fillStyle='#1c1614';c.beginPath();c.ellipse(s*10,-40,2.6,8,s*.1,0,7);c.fill()});flower(c,-side*6,-53,'#ff80ab',1.9);flower(c,-side*9,-50,'#ffffff',1.3)}
+ else if(st==='twinbraid'){[-1,1].forEach(s=>{for(let i=0;i<6;i++){c.fillStyle='#1c1614';c.beginPath();c.ellipse(s*(10.5+Math.sin(t*3+i)*.4*(i/6)),-45+i*3.6,2.5,2.2,0,0,7);c.fill()}c.fillStyle='#e53935';c.beginPath();c.arc(s*10.8,-23,2,0,7);c.arc(s*10.8-2.4,-22,1.4,0,7);c.arc(s*10.8+2.4,-22,1.4,0,7);c.fill()})}
+ else if(st==='bob'){flower(c,-side*7,-54,'#ff80ab',2);flower(c,-side*10,-51,'#fffdf5',1.3);c.strokeStyle='rgba(255,255,255,.12)';c.lineWidth=1;c.beginPath();c.moveTo(-8,-52);c.quadraticCurveTo(0,-57,8,-52);c.stroke()}
+ else if(st==='chada'){c.fillStyle='#ffc107';c.beginPath();c.moveTo(-9,-55);c.lineTo(-7,-64);c.lineTo(-3.5,-60);c.lineTo(0,-73);c.lineTo(3.5,-60);c.lineTo(7,-64);c.lineTo(9,-55);c.closePath();c.fill();c.strokeStyle='#ff8f00';c.lineWidth=.8;c.stroke();c.fillStyle='#e53935';c.beginPath();c.arc(0,-60,1.5,0,7);c.fill();c.fillStyle='#43a047';c.beginPath();c.arc(-4.5,-58,1.1,0,7);c.arc(4.5,-58,1.1,0,7);c.fill();c.fillStyle='#ffc107';[-1,1].forEach(s=>{c.beginPath();c.moveTo(s*9,-54);c.lineTo(s*14,-60);c.lineTo(s*11.5,-49);c.closePath();c.fill()})}
+ else if(st==='ponytail'){c.fillStyle='#ffd54f';c.beginPath();c.arc(side*8,-51,2.2,0,7);c.fill();flower(c,-side*6,-53,'#ff80ab',1.6)}
+ else{const st2=5;for(let i=0;i<=st2;i++){const py=-48+(25*i/st2)*-1*-1,px=side*9+(i%2?1.5:-1.5)+w*(i/st2);c.fillStyle='#1c1614';c.beginPath();c.arc(px,-48+i*5,2.8,0,7);c.fill()}c.fillStyle='#ff7043';c.beginPath();c.arc(side*9+w,-22,2.2,0,7);c.fill()}
+}
 function drawCharacter(c,p,x,y,t,isWalking){
  c.save();c.translate(x,y);c.scale(1.15,1.15);
  const ph=t*8,bob=isWalking?Math.abs(Math.sin(ph))*2.5:Math.sin(t*2)*.8,sw=isWalking?Math.sin(ph):0,dir=p.dir||1,fem=p.gender==='female';
@@ -198,6 +233,7 @@ function drawCharacter(c,p,x,y,t,isWalking){
  c.lineCap='round';c.lineJoin='round';
  const arm=(s,col,w)=>{const ex=s*12+(-s)*sw*3,ey=-21;c.strokeStyle=col;c.lineWidth=w;c.beginPath();c.moveTo(s*8.5,-36);c.quadraticCurveTo(s*12,-29,ex,ey);c.stroke();c.fillStyle=skin;c.beginPath();c.arc(ex,ey+1,2,0,7);c.fill();c.fillStyle='#ffd54f';c.beginPath();c.arc(ex*.96,ey-2,1.5,0,7);c.fill()};
  c.fillStyle=skin;c.fillRect(-2,-42,4,5);
+ if(fem)hairBack(c,p.hairStyle||'bun',t,side);
  if(fem){
   c.fillStyle='#ffd54f';[-1,1].forEach(s=>{c.beginPath();c.ellipse(s*4+s*sw*2.2,-1.5,3.2,1.8,0,0,7);c.fill()});
   const sk=c.createLinearGradient(0,-21,0,-3);sk.addColorStop(0,mixc(oc,'#ffffff',.25));sk.addColorStop(1,mixc(oc,'#000000',.35));
@@ -229,131 +265,13 @@ function drawCharacter(c,p,x,y,t,isWalking){
  c.strokeStyle='#3a2a22';c.lineWidth=.9;c.beginPath();c.moveTo(-5+look,-51.5);c.lineTo(-1.5+look,-51.5);c.moveTo(1.5+look,-51.5);c.lineTo(5+look,-51.5);c.stroke();
  c.strokeStyle=fem?'#d6455d':'#a0574a';c.lineWidth=1.1;c.beginPath();c.arc(look*.5,-45,2,.2,Math.PI-.2);c.stroke();
  c.fillStyle='#1c1614';c.beginPath();c.arc(0,-50,10,Math.PI,0);c.fill();
- if(fem){c.beginPath();c.moveTo(-9.5,-50);c.quadraticCurveTo(-4,-55,side*-2,-52);c.lineTo(0,-50);c.fill();
-  if(p.hairStyle==='bun'){c.beginPath();c.arc(0,-61,6.5,0,7);c.fill();c.fillStyle='#fff';for(let i=0;i<7;i++){const a=i/7*6.28;c.beginPath();c.arc(Math.cos(a)*7.2,-61+Math.sin(a)*7.2,1.5,0,7);c.fill()}c.strokeStyle='#ffd54f';c.lineWidth=1.8;c.beginPath();c.moveTo(-8,-64);c.lineTo(8,-58);c.stroke();c.fillStyle='#ffd54f';c.beginPath();c.arc(8,-58,1.8,0,7);c.fill()}
-  else if(p.hairStyle==='ponytail'){const w=Math.sin(t*3)*1.5;c.strokeStyle='#1c1614';c.lineWidth=5;c.beginPath();c.moveTo(side*7,-52);c.quadraticCurveTo(side*14,-44,side*11+w,endY);c.stroke();c.fillStyle='#ffd54f';c.beginPath();c.arc(side*8,-51,2.2,0,7);c.fill()}
-  else{const w=Math.sin(t*3),st=Math.max(3,Math.floor((endY+48)/-4.5));for(let i=0;i<=st;i++){const py=-48+(endY+48)*(i/st),px=side*9+(i%2?1.5:-1.5)+w*(i/st);c.fillStyle='#1c1614';c.beginPath();c.arc(px,py,2.8,0,7);c.fill()}c.fillStyle='#ff7043';c.beginPath();c.arc(side*9+w,endY,2.2,0,7);c.fill()}
-  c.fillStyle='#ff80ab';for(let i=0;i<5;i++){const a=i/5*6.28;c.beginPath();c.arc(-side*6+Math.cos(a)*1.8,-53+Math.sin(a)*1.8,1.2,0,7);c.fill()}c.fillStyle='#ffd54f';c.beginPath();c.arc(-side*6,-53,1,0,7);c.fill();
- }else{c.fillStyle='rgba(255,255,255,.12)';c.beginPath();c.ellipse(-3,-56,4,1.4,-.3,0,7);c.fill()}
- c.font='600 11px '+F;const nw=c.measureText(p.name).width+12;c.fillStyle='rgba(10,15,40,.8)';c.strokeStyle='rgba(255,179,71,.5)';c.lineWidth=1;c.beginPath();c.roundRect(-nw/2,-80,nw,16,7);c.fill();c.stroke();
- c.fillStyle='#ffd98a';c.textAlign='center';c.fillText(p.name,0,-68);c.restore();
+ if(fem)hairFront(c,p.hairStyle||'bun',t,side);
+ else{c.fillStyle='rgba(255,255,255,.12)';c.beginPath();c.ellipse(-3,-56,4,1.4,-.3,0,7);c.fill()}
+ c.font='600 11px '+F;const nw=c.measureText(p.name).width+12;c.fillStyle='rgba(10,15,40,.8)';c.strokeStyle='rgba(255,179,71,.5)';c.lineWidth=1;c.beginPath();c.roundRect(-nw/2,-92,nw,16,7);c.fill();c.stroke();
+ c.fillStyle='#ffd98a';c.textAlign='center';c.fillText(p.name,0,-80);c.restore();
 }
 
 /* ---------- วาดตัวละครชุดไทย ---------- */
-function drawCharacter(c, p, x, y, t, isWalking) {
-  c.save();
-  c.translate(x, y);
-  const bob = isWalking ? Math.abs(Math.sin(t * 10)) * 3 : Math.sin(t * 2) * 1;
-  const legSwing = isWalking ? Math.sin(t * 10) * 5 : 0;
-
-  // เงาใต้เท้า
-  c.fillStyle = 'rgba(0,0,0,0.4)';
-  c.beginPath(); c.ellipse(0, 0, 14, 5, 0, 0, Math.PI * 2); c.fill();
-  c.translate(0, -bob);
-
-  const hairLenMap = { chest: -33, underbust: -28, midback: -23, waist: -17 };
-  const endY = hairLenMap[p.hairLen] || -23;
-
-  // ขา
-  c.strokeStyle = '#e0ac84'; c.lineWidth = 4; c.lineCap = 'round';
-  c.beginPath(); c.moveTo(-4, -14); c.lineTo(-4 - legSwing * 0.5, -2); c.stroke();
-  c.beginPath(); c.moveTo(4, -14); c.lineTo(4 + legSwing * 0.5, -2); c.stroke();
-
-  if (p.gender === 'female') {
-    // ผ้าถุงหน้านาง + เชิงทอง
-    c.fillStyle = p.outfitColor || '#c2185b';
-    c.beginPath();
-    c.moveTo(-9, -20); c.lineTo(9, -20); c.lineTo(11, -3); c.lineTo(-11, -3);
-    c.closePath(); c.fill();
-    c.fillStyle = '#ffd54f';
-    c.fillRect(-10.5, -6, 21, 2.5);
-    c.fillRect(-2, -20, 4, 17); // จีบหน้านาง
-
-    // ลำตัว + สไบเฉียง + เข็มขัดทอง
-    c.fillStyle = '#f3c19d';
-    c.fillRect(-8, -38, 16, 18);
-    c.fillStyle = '#ffb300';
-    c.beginPath();
-    c.moveTo(-8, -39); c.lineTo(-1, -39); c.lineTo(9, -19); c.lineTo(2, -19);
-    c.closePath(); c.fill();
-    c.fillStyle = '#ffe082';
-    c.fillRect(-9, -21, 18, 2.5); // เข็มขัด
-
-    // แขน
-    c.strokeStyle = '#f3c19d'; c.lineWidth = 3.5;
-    c.beginPath(); c.moveTo(-9, -37); c.lineTo(-12, -22); c.stroke();
-    c.beginPath(); c.moveTo(9, -37); c.lineTo(12, -22); c.stroke();
-
-    // หัว & ใบหน้า
-    c.fillStyle = '#f3c19d';
-    c.beginPath(); c.arc(0, -48, 9.5, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#222';
-    const look = (p.dir || 1) * 2;
-    c.beginPath(); c.arc(-3 + look, -48, 1.2, 0, 7); c.arc(3 + look, -48, 1.2, 0, 7); c.fill();
-
-    // ผม
-    c.fillStyle = '#1c1614';
-    c.beginPath(); c.arc(0, -50, 10, Math.PI, 0); c.fill();
-    const side = -(p.dir || 1);
-    if (p.hairStyle === 'bun') {
-      c.beginPath(); c.arc(0, -61, 6, 0, Math.PI * 2); c.fill();
-      c.strokeStyle = '#ffd54f'; c.lineWidth = 1.8;
-      c.beginPath(); c.moveTo(-7, -63); c.lineTo(7, -59); c.stroke();
-    } else if (p.hairStyle === 'ponytail') {
-      const sway = Math.sin(t * 3) * 1.5;
-      c.strokeStyle = '#1c1614'; c.lineWidth = 5;
-      c.beginPath(); c.moveTo(side * 7, -52);
-      c.quadraticCurveTo(side * 14, -44, side * 11 + sway, endY); c.stroke();
-      c.fillStyle = '#ffd54f';
-      c.beginPath(); c.arc(side * 8, -51, 2.2, 0, 7); c.fill();
-    } else {
-      const sway = Math.sin(t * 3) * 1, startY = -48;
-      const steps = Math.max(3, Math.floor((endY - startY) / 4.5));
-      for (let i = 0; i <= steps; i++) {
-        const py = startY + (endY - startY) * (i / steps);
-        const px = side * 9 + (i % 2 === 0 ? -1.5 : 1.5) + sway * (i / steps);
-        c.fillStyle = '#1c1614';
-        c.beginPath(); c.arc(px, py, 2.8, 0, Math.PI * 2); c.fill();
-      }
-      c.fillStyle = '#ff7043';
-      c.beginPath(); c.arc(side * 9 + sway, endY, 2.2, 0, 7); c.fill();
-    }
-  } else {
-    // ผู้ชาย: โจงกระเบน + เสื้อราชปะแตน + ผ้าคาดเอว
-    c.fillStyle = p.outfitColor || '#1565c0';
-    c.beginPath();
-    c.moveTo(-10, -21); c.lineTo(10, -21); c.lineTo(11, -8); c.lineTo(2, -8);
-    c.lineTo(0, -13); c.lineTo(-2, -8); c.lineTo(-11, -8);
-    c.closePath(); c.fill();
-
-    c.fillStyle = '#f5f5f5';
-    c.beginPath(); c.roundRect(-9, -39, 18, 19, 3); c.fill();
-    c.fillStyle = '#ffb300';
-    c.fillRect(-9, -22, 18, 3.5);
-
-    c.strokeStyle = '#f5f5f5'; c.lineWidth = 4;
-    c.beginPath(); c.moveTo(-9, -37); c.lineTo(-12, -22); c.stroke();
-    c.beginPath(); c.moveTo(9, -37); c.lineTo(12, -22); c.stroke();
-
-    c.fillStyle = '#e0ac84';
-    c.beginPath(); c.arc(0, -48, 9.5, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#1c1614';
-    c.beginPath(); c.arc(0, -50, 9.8, Math.PI * 0.95, Math.PI * 2.05); c.fill();
-    c.fillStyle = '#222';
-    const look = (p.dir || 1) * 2;
-    c.beginPath(); c.arc(-3 + look, -48, 1.2, 0, 7); c.arc(3 + look, -48, 1.2, 0, 7); c.fill();
-  }
-
-  // ป้ายชื่อบนหัว
-  c.font = '600 11px ' + F;
-  const nw = c.measureText(p.name).width + 10;
-  c.fillStyle = 'rgba(10, 15, 40, 0.78)';
-  c.beginPath(); c.roundRect(-nw / 2, -78, nw, 16, 6); c.fill();
-  c.fillStyle = '#ffd98a';
-  c.textAlign = 'center';
-  c.fillText(p.name, 0, -66);
-  c.restore();
-}
 
 /* ---------- วาดกระทง ---------- */
 function flame(c,x,y,t,r){const f=1+.15*Math.sin(t*9+x);const g=c.createRadialGradient(x,y,0,x,y,r*4*f);g.addColorStop(0,'rgba(255,200,80,.8)');g.addColorStop(1,'rgba(255,120,0,0)');c.fillStyle=g;c.fillRect(x-r*4,y-r*4,r*8,r*8);c.fillStyle='#ffd35a';c.beginPath();c.ellipse(x,y,r*.5,r*f,0,0,7);c.fill()}
@@ -526,7 +444,7 @@ function charModal() {
   show(`
     <h2>👘 แต่งตัวละครชุดไทย</h2>
     <div style="text-align:center;background:#0b1030;border-radius:12px;padding:10px;margin-bottom:8px">
-      <canvas id="prevChar" width="140" height="110"></canvas>
+      <canvas id="prevChar" width="140" height="135"></canvas>
     </div>
     <label>ชื่อตัวละคร</label>
     <input type="text" id="cn" maxlength="15" value="${esc(myChar.name)}">
@@ -550,25 +468,8 @@ function charModal() {
       </div>
     </div>
     <div id="femOpts" style="display:${myChar.gender==='female'?'block':'none'}">
-      <div class="grid2">
-        <div>
-          <label>ทรงผมผู้หญิง</label>
-          <select id="chs">
-            <option value="bun" ${myChar.hairStyle==='bun'?'selected':''}>มวยผมปิ่นทอง</option>
-            <option value="ponytail" ${myChar.hairStyle==='ponytail'?'selected':''}>หางม้า</option>
-            <option value="braid" ${myChar.hairStyle==='braid'?'selected':''}>ถักเปีย</option>
-          </select>
-        </div>
-        <div id="lenWrap" style="display:${myChar.hairStyle==='bun'?'none':'block'}">
-          <label>ความยาวผม</label>
-          <select id="chl">
-            <option value="chest" ${myChar.hairLen==='chest'?'selected':''}>ระดับหน้าอก</option>
-            <option value="underbust" ${myChar.hairLen==='underbust'?'selected':''}>ระดับใต้อก</option>
-            <option value="midback" ${myChar.hairLen==='midback'?'selected':''}>ระดับกลางหลัง</option>
-            <option value="waist" ${myChar.hairLen==='waist'?'selected':''}>ระดับเอว</option>
-          </select>
-        </div>
-      </div>
+      <label>ทรงผมผู้หญิง</label>
+      <select id="chs">${HAIRS.map(([v,n])=>`<option value="${v}" ${myChar.hairStyle===v?'selected':''}>${n}</option>`).join('')}</select>
     </div>
     <div class="row">
       <button id="x">ยกเลิก</button>
@@ -578,20 +479,18 @@ function charModal() {
 
   const pCv = $('#prevChar').getContext('2d');
   const renderPrev = () => {
-    pCv.clearRect(0,0,140,110);
+    pCv.clearRect(0,0,140,135);
     const temp = {
       name: $('#cn').value.trim() || 'ชื่อ',
       gender: $('#cg').value,
       hairStyle: $('#chs').value,
-      hairLen: $('#chl').value,
       outfitColor: $('#ccol').value,
       dir: 1
     };
     $('#femOpts').style.display = temp.gender === 'female' ? 'block' : 'none';
-    $('#lenWrap').style.display = temp.hairStyle === 'bun' ? 'none' : 'block';
-    drawCharacter(pCv, temp, 70, 95, 0, false);
+    drawCharacter(pCv, temp, 70, 122, 0, false);
   };
-  ['#cn','#cg','#chs','#chl','#ccol'].forEach(id => $(id).oninput = renderPrev);
+  ['#cn','#cg','#chs','#ccol'].forEach(id => $(id).oninput = renderPrev);
   renderPrev();
 
   $('#x').onclick = close;
@@ -601,7 +500,6 @@ function charModal() {
     myChar.name = n;
     myChar.gender = $('#cg').value;
     myChar.hairStyle = $('#chs').value;
-    myChar.hairLen = $('#chl').value;
     myChar.outfitColor = $('#ccol').value;
     localStorage.setItem('my_thai_char', JSON.stringify(myChar));
     close();
